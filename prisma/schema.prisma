@@ -1,0 +1,121 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  CUSTOMER
+  PROVIDER
+  ADMIN
+}
+
+enum ServiceCategory {
+  HAIRCUT
+  BARBER
+  NAILS
+  SPA
+  MAKEUP
+  SKINCARE
+}
+
+enum BookingStatus {
+  CONFIRMED
+  CANCELLED
+}
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  passwordHash String?
+  name         String
+  role         Role      @default(CUSTOMER)
+  isGuest      Boolean   @default(false)
+  createdAt    DateTime  @default(now())
+  salons       Salon[]
+  bookings     Booking[]
+}
+
+model Salon {
+  id          String            @id
+  owner       User?             @relation(fields: [ownerId], references: [id])
+  ownerId     String?
+  name        String
+  tagline     String
+  about       String
+  address     String
+  distanceKm  Float
+  rating      Float
+  reviewCount Int
+  categories  ServiceCategory[]
+  openHour    Int
+  closeHour   Int
+  isFeatured  Boolean
+  coverSeed   Int
+  services    SalonService[]
+  staff       StaffMember[]
+  reviews     Review[]
+  bookings    Booking[]
+}
+
+model SalonService {
+  id              String          @id @default(cuid())
+  salon           Salon           @relation(fields: [salonId], references: [id], onDelete: Cascade)
+  salonId         String
+  name            String
+  description     String
+  durationMinutes Int
+  price           Decimal         @db.Decimal(10, 2)
+  category        ServiceCategory
+}
+
+model StaffMember {
+  id       String    @id @default(cuid())
+  salon    Salon     @relation(fields: [salonId], references: [id], onDelete: Cascade)
+  salonId  String
+  name     String
+  role     String
+  rating   Float
+  bookings Booking[]
+}
+
+model Review {
+  id         String   @id @default(cuid())
+  salon      Salon    @relation(fields: [salonId], references: [id], onDelete: Cascade)
+  salonId    String
+  authorName String
+  rating     Float
+  comment    String
+  date       DateTime
+}
+
+model Booking {
+  id                   String        @id @default(cuid())
+  customer             User          @relation(fields: [customerId], references: [id])
+  customerId           String
+  salon                Salon         @relation(fields: [salonId], references: [id])
+  salonId              String
+  staff                StaffMember?  @relation(fields: [staffId], references: [id])
+  staffId              String?
+  start                DateTime
+  // Persisted (not derived) so the Postgres exclusion constraint can range over it.
+  end                  DateTime
+  totalDurationMinutes Int
+  totalPrice           Decimal       @db.Decimal(10, 2)
+  status               BookingStatus @default(CONFIRMED)
+  createdAt            DateTime      @default(now())
+
+  // Snapshot of the salon/services at booking time: bookings are historical
+  // receipts and must not mutate when a provider renames things.
+  salonName    String
+  salonAddress String
+  coverSeed    Int
+  serviceNames String[]
+  staffName    String?
+
+  @@index([salonId, start])
+  @@index([customerId, start])
+}

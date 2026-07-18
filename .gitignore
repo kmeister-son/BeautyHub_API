@@ -1,0 +1,28 @@
+# compiled output
+/dist
+/node_modules
+
+# environment (secrets) — .env.example is the committed template
+.env
+
+# logs
+logs
+*.log
+npm-debug.log*
+
+# tests
+/coverage
+/.nyc_output
+
+# IDE
+/.idea
+/.vscode
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# OS
+.DS_Store
+Thumbs.db
