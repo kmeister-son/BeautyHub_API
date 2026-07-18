@@ -114,7 +114,12 @@ export class ProviderService {
     const bookings = await this.prisma.booking.findMany({
       where: { salonId: salon.id, status: BookingStatus.CONFIRMED, ...range },
       orderBy: { start: 'asc' },
+      include: { customer: { select: { name: true, isGuest: true } } },
     });
-    return bookings.map(toBookingJson);
+    // The vendor schedule needs to show who booked; guests have no real name.
+    return bookings.map((b) => ({
+      ...toBookingJson(b),
+      customerName: b.customer.isGuest ? 'Guest' : b.customer.name,
+    }));
   }
 }
