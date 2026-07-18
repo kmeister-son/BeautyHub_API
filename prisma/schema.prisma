@@ -28,15 +28,30 @@ enum BookingStatus {
 }
 
 model User {
-  id           String    @id @default(cuid())
-  email        String    @unique
-  passwordHash String?
-  name         String
-  role         Role      @default(CUSTOMER)
-  isGuest      Boolean   @default(false)
-  createdAt    DateTime  @default(now())
-  salons       Salon[]
-  bookings     Booking[]
+  id             String          @id @default(cuid())
+  email          String          @unique
+  passwordHash   String?
+  name           String
+  role           Role            @default(CUSTOMER)
+  isGuest        Boolean         @default(false)
+  createdAt      DateTime        @default(now())
+  salons         Salon[]
+  bookings       Booking[]
+  passwordResets PasswordReset[]
+}
+
+// One-time 6-digit password-reset codes; only the newest unused, unexpired
+// row per user is honoured.
+model PasswordReset {
+  id        String    @id @default(cuid())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  codeHash  String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, createdAt])
 }
 
 model Salon {
