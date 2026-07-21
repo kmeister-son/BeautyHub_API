@@ -1,8 +1,9 @@
-import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { AdminService } from './admin.service';
+import { AdminBookingQueryDto } from './dto/admin-booking-query.dto';
 import { AdminUpdateSalonDto, CreateSalonDto } from './dto/admin-salon.dto';
 import { AdminUpdateUserDto } from './dto/admin-user.dto';
 
@@ -42,5 +43,10 @@ export class AdminController {
   @Patch('users/:id')
   updateUser(@Param('id') id: string, @Body() dto: AdminUpdateUserDto) {
     return this.admin.updateUser(id, dto);
+  }
+
+  @Get('bookings')
+  listBookings(@Query() query: AdminBookingQueryDto) {
+    return this.admin.listBookings(query);
   }
 }

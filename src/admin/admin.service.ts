@@ -1,7 +1,8 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma, Role, ServiceCategory } from '@prisma/client';
-import { salonInclude, toSalonJson } from '../common/mappers';
+import { BookingStatus, Prisma, Role, ServiceCategory } from '@prisma/client';
+import { salonInclude, toAdminBookingJson, toSalonJson } from '../common/mappers';
 import { PrismaService } from '../prisma/prisma.service';
+import { AdminBookingQueryDto } from './dto/admin-booking-query.dto';
 import { AdminUpdateSalonDto, CreateSalonDto } from './dto/admin-salon.dto';
 import { AdminUpdateUserDto } from './dto/admin-user.dto';
 
@@ -105,5 +106,18 @@ export class AdminService {
       }
       throw e;
     }
+  }
+
+  async listBookings(query: AdminBookingQueryDto) {
+    const bookings = await this.prisma.booking.findMany({
+      where: {
+        ...(query.salonId ? { salonId: query.salonId } : {}),
+        ...(query.customerId ? { customerId: query.customerId } : {}),
+        ...(query.status ? { status: query.status.toUpperCase() as BookingStatus } : {}),
+      },
+      include: { customer: true },
+      orderBy: { start: 'desc' },
+    });
+    return bookings.map(toAdminBookingJson);
   }
 }
