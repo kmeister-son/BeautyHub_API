@@ -28,6 +28,8 @@ type SalonSeed = {
   tagline: string;
   about: string;
   address: string;
+  latitude: number;
+  longitude: number;
   distanceKm: number;
   rating: number;
   reviewCount: number;
@@ -54,6 +56,8 @@ const salons: SalonSeed[] = [
       'cuts. Walk out feeling brand new — complimentary consultation with ' +
       'every appointment.',
     address: '12 Rosewood Ave, City Centre',
+    latitude: -33.91412,
+    longitude: 18.4241,
     distanceKm: 1.2,
     rating: 4.9,
     reviewCount: 312,
@@ -127,6 +131,8 @@ const salons: SalonSeed[] = [
       'Classic barbershop with a modern edge. Fades, beard sculpting and ' +
       'hot-towel shaves by barbers who take their craft seriously.',
     address: '48 Meridian St, Old Town',
+    latitude: -33.9249,
+    longitude: 18.432758,
     distanceKm: 0.8,
     rating: 4.8,
     reviewCount: 540,
@@ -200,6 +206,8 @@ const salons: SalonSeed[] = [
       'A calm sanctuary offering massages, facials and full-body ' +
       'treatments using organic products.',
     address: '7 Serenity Lane, Riverside',
+    latitude: -33.955443,
+    longitude: 18.4241,
     distanceKm: 3.4,
     rating: 4.7,
     reviewCount: 198,
@@ -265,6 +273,8 @@ const salons: SalonSeed[] = [
       'Trend-led nail studio for gel, acrylic and hand-painted nail art. ' +
       'Sterile tools, premium polishes, serious attention to detail.',
     address: '23 Bloom St, Fashion District',
+    latitude: -33.911562,
+    longitude: 18.44017,
     distanceKm: 2.1,
     rating: 4.8,
     reviewCount: 265,
@@ -337,6 +347,8 @@ const salons: SalonSeed[] = [
       'Clinical facials, peels and LED therapy tailored to your skin by ' +
       'certified aestheticians.',
     address: '90 Crescent Rd, Northgate',
+    latitude: -33.886076,
+    longitude: 18.407074,
     distanceKm: 4.6,
     rating: 4.6,
     reviewCount: 143,
@@ -394,6 +406,8 @@ const salons: SalonSeed[] = [
       'Specialists in braids, locs and natural hair care. Gentle hands, ' +
       'quality extensions and styles that last.',
     address: '5 Unity Plaza, Eastside',
+    latitude: -33.94332,
+    longitude: 18.446293,
     distanceKm: 2.9,
     rating: 4.9,
     reviewCount: 421,
@@ -467,6 +481,8 @@ const salons: SalonSeed[] = [
       'Your one-stop lounge for lash extensions, brow lamination and ' +
       'occasion makeup.',
     address: '31 Amber Way, Westfield',
+    latitude: -33.95793,
+    longitude: 18.384304,
     distanceKm: 5.2,
     rating: 4.5,
     reviewCount: 176,
@@ -524,6 +540,8 @@ const salons: SalonSeed[] = [
       'Barbering, skin care and express manicures under one roof — ' +
       'with an espresso while you wait.',
     address: '18 Foundry Yard, Docklands',
+    latitude: -33.9249,
+    longitude: 18.382974,
     distanceKm: 3.8,
     rating: 4.7,
     reviewCount: 289,
@@ -621,6 +639,8 @@ async function main() {
       tagline: s.tagline,
       about: s.about,
       address: s.address,
+      latitude: s.latitude,
+      longitude: s.longitude,
       distanceKm: s.distanceKm,
       rating: s.rating,
       reviewCount: s.reviewCount,

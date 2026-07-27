@@ -62,6 +62,11 @@ model Salon {
   tagline     String
   about       String
   address     String
+  // True coordinates, used to compute real distance from the customer's
+  // device. distanceKm is kept as a static fallback for clients that don't
+  // send a location (e.g. no permission granted).
+  latitude    Float             @default(0)
+  longitude   Float             @default(0)
   distanceKm  Float
   rating      Float
   reviewCount Int
