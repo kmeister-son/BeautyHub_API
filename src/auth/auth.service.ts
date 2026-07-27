@@ -121,4 +121,20 @@ export class AuthService {
     const user = await this.prisma.user.findUniqueOrThrow({ where: { id: userId } });
     return this.toProfile(user);
   }
+
+  /** Store-compliance requirement (Apple 5.1.1(v)): permanently removes the
+   *  account and its personal data. Bookings are deleted rather than
+   *  anonymised; owned salons are detached, not deleted, so a provider's
+   *  catalogue survives an account deletion. */
+  async deleteAccount(userId: string) {
+    await this.prisma.$transaction([
+      this.prisma.booking.deleteMany({ where: { customerId: userId } }),
+      this.prisma.salon.updateMany({
+        where: { ownerId: userId },
+        data: { ownerId: null },
+      }),
+      this.prisma.user.delete({ where: { id: userId } }),
+    ]);
+    return { ok: true };
+  }
 }
