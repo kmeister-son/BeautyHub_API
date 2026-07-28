@@ -3,6 +3,7 @@ import { NestApplication } from '@nestjs/core';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
+import { salonWallClockToUtc } from '../src/common/timezone';
 import { PrismaService } from '../src/prisma/prisma.service';
 
 jest.setTimeout(30_000);
@@ -13,8 +14,10 @@ const SALON = 'salon-lotus'; // opens 10, closes 18
 const DAY = '2030-03-04';
 const DURATION = 60;
 
+// Wall-clock hours at the salon, like the API defines them — keeps the
+// assertions correct whatever timezone the test machine runs in.
 const slotAt = (hour: number, minute = 0) =>
-  new Date(2030, 2, 4, hour, minute).toISOString();
+  salonWallClockToUtc(2030, 3, 4, hour, minute).toISOString();
 
 describe('BeautyHub API (e2e)', () => {
   let app: NestApplication;

@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { BookingStatus, ServiceCategory } from '@prisma/client';
 import { salonInclude, toBookingJson, toSalonJson, toServiceJson, toStaffJson } from '../common/mappers';
+import { salonWallClockToUtc } from '../common/timezone';
 import { PrismaService } from '../prisma/prisma.service';
 import { UpdateSalonDto } from './dto/update-salon.dto';
 import { CreateServiceDto, UpdateServiceDto } from './dto/upsert-service.dto';
@@ -106,9 +107,13 @@ export class ProviderService {
     const salon = await this.ownedSalon(ownerId);
     let range = {};
     if (date) {
+      // A vendor's "day" is a salon-market calendar day, not a server-local one.
       const [year, month, day] = date.split('-').map(Number);
       range = {
-        start: { gte: new Date(year, month - 1, day), lt: new Date(year, month - 1, day + 1) },
+        start: {
+          gte: salonWallClockToUtc(year, month, day),
+          lt: salonWallClockToUtc(year, month, day + 1),
+        },
       };
     }
     const bookings = await this.prisma.booking.findMany({

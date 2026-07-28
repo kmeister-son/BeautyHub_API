@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { BookingStatus } from '@prisma/client';
+import { salonWallClockToUtc } from '../common/timezone';
 import { PrismaService } from '../prisma/prisma.service';
 
 const SLOT_STEP_MINUTES = 30;
@@ -28,18 +29,19 @@ export class AvailabilityService {
       throw new BadRequestException(`Staff member ${staffId} does not work at ${salonId}`);
     }
 
+    // The date param and open/close hours are salon-market wall-clock time;
+    // everything below runs on UTC instants.
     const [year, month, day] = date.split('-').map(Number);
-    const open = new Date(year, month - 1, day, salon.openHour);
-    const lastStart = new Date(
-      new Date(year, month - 1, day, salon.closeHour).getTime() - durationMinutes * 60_000,
-    );
+    const open = salonWallClockToUtc(year, month, day, salon.openHour);
+    const close = salonWallClockToUtc(year, month, day, salon.closeHour);
+    const lastStart = new Date(close.getTime() - durationMinutes * 60_000);
 
     // One indexed query for the day's confirmed bookings; overlap in memory.
     const dayBookings = await this.prisma.booking.findMany({
       where: {
         salonId,
         status: BookingStatus.CONFIRMED,
-        start: { lt: new Date(year, month - 1, day, salon.closeHour) },
+        start: { lt: close },
         end: { gt: open },
         // With a specific professional, only their bookings block — plus
         // "any professional" bookings, which occupy an unknown chair.
