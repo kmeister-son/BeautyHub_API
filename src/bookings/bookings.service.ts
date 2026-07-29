@@ -12,11 +12,24 @@ import { CreateBookingDto } from './dto/create-booking.dto';
 
 const EXCLUSION_VIOLATION = '23P01';
 
+/** How long a salon owner gets to respond before a PENDING request lapses. */
+const PENDING_TTL_HOURS = 24;
+
 @Injectable()
 export class BookingsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async findMine(userId: string) {
+    // Lazy expiry: requests the owner never answered flip to EXPIRED the next
+    // time anyone reads them — no scheduler needed at this scale.
+    await this.prisma.booking.updateMany({
+      where: {
+        customerId: userId,
+        status: BookingStatus.PENDING,
+        expiresAt: { lt: new Date() },
+      },
+      data: { status: BookingStatus.EXPIRED },
+    });
     const bookings = await this.prisma.booking.findMany({
       where: { customerId: userId },
       orderBy: { start: 'desc' },
@@ -49,8 +62,9 @@ export class BookingsService {
     let staff: (typeof salon.staff)[number] | null = null;
     if (dto.staffId || dto.staffName) {
       staff =
-        salon.staff.find((m) => (dto.staffId ? m.id === dto.staffId : m.name === dto.staffName)) ??
-        null;
+        salon.staff.find((m) =>
+          dto.staffId ? m.id === dto.staffId : m.name === dto.staffName,
+        ) ?? null;
       if (!staff) {
         throw new BadRequestException(
           `Unknown staff member: ${dto.staffId ?? dto.staffName}`,
@@ -59,9 +73,27 @@ export class BookingsService {
     }
 
     const start = new Date(dto.start);
-    const totalDurationMinutes = services.reduce((sum, s) => sum + s.durationMinutes, 0);
+    const totalDurationMinutes = services.reduce(
+      (sum, s) => sum + s.durationMinutes,
+      0,
+    );
     const totalPrice = services.reduce((sum, s) => sum + Number(s.price), 0);
     const end = new Date(start.getTime() + totalDurationMinutes * 60_000);
+
+    // Salons that vet their bookings get a PENDING request the owner must
+    // accept before it confirms; it holds the slot until answered or expired.
+    const autoConfirm = salon.autoConfirmBookings;
+
+    // Lapsed requests still count as PENDING in the exclusion constraint
+    // until something flips them; sweep so they can't block a live booking.
+    await this.prisma.booking.updateMany({
+      where: {
+        salonId: salon.id,
+        status: BookingStatus.PENDING,
+        expiresAt: { lt: new Date() },
+      },
+      data: { status: BookingStatus.EXPIRED },
+    });
 
     try {
       const booking = await this.prisma.$transaction(async (tx) => {
@@ -69,13 +101,14 @@ export class BookingsService {
         const clash = await tx.booking.findFirst({
           where: {
             salonId: salon.id,
-            status: BookingStatus.CONFIRMED,
+            status: { in: [BookingStatus.PENDING, BookingStatus.CONFIRMED] },
             start: { lt: end },
             end: { gt: start },
           },
           select: { id: true },
         });
-        if (clash) throw new ConflictException('That slot has just been taken.');
+        if (clash)
+          throw new ConflictException('That slot has just been taken.');
 
         return tx.booking.create({
           data: {
@@ -86,7 +119,12 @@ export class BookingsService {
             end,
             totalDurationMinutes,
             totalPrice,
-            status: BookingStatus.CONFIRMED,
+            status: autoConfirm
+              ? BookingStatus.CONFIRMED
+              : BookingStatus.PENDING,
+            expiresAt: autoConfirm
+              ? null
+              : new Date(Date.now() + PENDING_TTL_HOURS * 3_600_000),
             salonName: salon.name,
             salonAddress: salon.address,
             coverSeed: salon.coverSeed,
@@ -105,8 +143,13 @@ export class BookingsService {
   }
 
   async cancel(user: AuthUser, bookingId: string) {
-    const booking = await this.prisma.booking.findUnique({ where: { id: bookingId } });
-    if (!booking || (booking.customerId !== user.id && user.role !== Role.ADMIN)) {
+    const booking = await this.prisma.booking.findUnique({
+      where: { id: bookingId },
+    });
+    if (
+      !booking ||
+      (booking.customerId !== user.id && user.role !== Role.ADMIN)
+    ) {
       throw new NotFoundException(`Booking not found: ${bookingId}`);
     }
     await this.prisma.booking.update({

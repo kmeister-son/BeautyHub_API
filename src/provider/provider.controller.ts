@@ -1,4 +1,14 @@
-import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  Param,
+  Patch,
+  Post,
+  Query,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -52,7 +62,11 @@ export class ProviderController {
   }
 
   @Patch('staff/:id')
-  updateStaff(@CurrentUser() user: AuthUser, @Param('id') id: string, @Body() dto: UpdateStaffDto) {
+  updateStaff(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+    @Body() dto: UpdateStaffDto,
+  ) {
     return this.provider.updateStaff(user.id, id, dto);
   }
 
@@ -65,5 +79,15 @@ export class ProviderController {
   @Get('bookings')
   getBookings(@CurrentUser() user: AuthUser, @Query('date') date?: string) {
     return this.provider.getBookings(user.id, date);
+  }
+
+  @Post('bookings/:id/accept')
+  acceptBooking(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    return this.provider.respondToBooking(user.id, id, true);
+  }
+
+  @Post('bookings/:id/decline')
+  declineBooking(@CurrentUser() user: AuthUser, @Param('id') id: string) {
+    return this.provider.respondToBooking(user.id, id, false);
   }
 }

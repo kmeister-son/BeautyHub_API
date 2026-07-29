@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { BookingStatus } from '@prisma/client';
 import { salonWallClockToUtc } from '../common/timezone';
 import { PrismaService } from '../prisma/prisma.service';
@@ -26,7 +30,9 @@ export class AvailabilityService {
     });
     if (!salon) throw new NotFoundException(`Salon not found: ${salonId}`);
     if (staffId && salon.staff.length === 0) {
-      throw new BadRequestException(`Staff member ${staffId} does not work at ${salonId}`);
+      throw new BadRequestException(
+        `Staff member ${staffId} does not work at ${salonId}`,
+      );
     }
 
     // The date param and open/close hours are salon-market wall-clock time;
@@ -36,16 +42,25 @@ export class AvailabilityService {
     const close = salonWallClockToUtc(year, month, day, salon.closeHour);
     const lastStart = new Date(close.getTime() - durationMinutes * 60_000);
 
-    // One indexed query for the day's confirmed bookings; overlap in memory.
+    // One indexed query for the day's slot-holding bookings; overlap in
+    // memory. PENDING requests hold their slot until answered or expired,
+    // matching the no_double_booking exclusion constraint.
     const dayBookings = await this.prisma.booking.findMany({
       where: {
         salonId,
-        status: BookingStatus.CONFIRMED,
         start: { lt: close },
         end: { gt: open },
-        // With a specific professional, only their bookings block — plus
-        // "any professional" bookings, which occupy an unknown chair.
-        ...(staffId ? { OR: [{ staffId }, { staffId: null }] } : {}),
+        AND: [
+          {
+            OR: [
+              { status: BookingStatus.CONFIRMED },
+              { status: BookingStatus.PENDING, expiresAt: { gt: new Date() } },
+            ],
+          },
+          // With a specific professional, only their bookings block — plus
+          // "any professional" bookings, which occupy an unknown chair.
+          ...(staffId ? [{ OR: [{ staffId }, { staffId: null }] }] : []),
+        ],
       },
       select: { start: true, end: true },
     });
@@ -59,7 +74,9 @@ export class AvailabilityService {
     ) {
       const slotStart = new Date(t);
       const slotEnd = new Date(t + durationMinutes * 60_000);
-      const conflicts = dayBookings.some((b) => slotStart < b.end && b.start < slotEnd);
+      const conflicts = dayBookings.some(
+        (b) => slotStart < b.end && b.start < slotEnd,
+      );
       if (!conflicts && slotStart > now) slots.push(slotStart.toISOString());
     }
     return slots;

@@ -1,4 +1,11 @@
-import { IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
+import {
+  IsBoolean,
+  IsInt,
+  IsOptional,
+  IsString,
+  Max,
+  Min,
+} from 'class-validator';
 
 export class UpdateSalonDto {
   @IsOptional()
@@ -28,4 +35,8 @@ export class UpdateSalonDto {
   @Min(1)
   @Max(24)
   closeHour?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  autoConfirmBookings?: boolean;
 }

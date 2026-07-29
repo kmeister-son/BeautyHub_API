@@ -23,7 +23,10 @@ enum ServiceCategory {
 }
 
 enum BookingStatus {
+  PENDING
   CONFIRMED
+  DECLINED
+  EXPIRED
   CANCELLED
 }
 
@@ -75,6 +78,9 @@ model Salon {
   closeHour   Int
   isFeatured  Boolean
   coverSeed   Int
+  // When false, new bookings are created PENDING and the owner must accept
+  // or decline each one before it confirms; true keeps instant booking.
+  autoConfirmBookings Boolean @default(true)
   services    SalonService[]
   staff       StaffMember[]
   reviews     Review[]
@@ -127,6 +133,11 @@ model Booking {
   totalPrice           Decimal       @db.Decimal(10, 2)
   status               BookingStatus @default(CONFIRMED)
   createdAt            DateTime      @default(now())
+  // Approval flow (only set on salons with autoConfirmBookings = false):
+  // PENDING bookings auto-expire (→ EXPIRED) once expiresAt passes without a
+  // response; respondedAt records the owner's accept/decline moment.
+  expiresAt            DateTime?
+  respondedAt          DateTime?
 
   // Snapshot of the salon/services at booking time: bookings are historical
   // receipts and must not mutate when a provider renames things.

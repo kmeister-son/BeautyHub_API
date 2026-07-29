@@ -1,4 +1,11 @@
-import { Booking, Review, Salon, SalonService, StaffMember, User } from '@prisma/client';
+import {
+  Booking,
+  Review,
+  Salon,
+  SalonService,
+  StaffMember,
+  User,
+} from '@prisma/client';
 
 // JSON shapes are contract-matched to the Flutter app's domain entities:
 // enum values lowercase (Dart's `.byName`), Decimal → number, DateTime → ISO.
@@ -28,7 +35,11 @@ export const toReviewJson = (r: Review) => ({
 });
 
 export const toSalonJson = (
-  salon: Salon & { services: SalonService[]; staff: StaffMember[]; reviews: Review[] },
+  salon: Salon & {
+    services: SalonService[];
+    staff: StaffMember[];
+    reviews: Review[];
+  },
 ) => ({
   id: salon.id,
   ownerId: salon.ownerId,
@@ -44,6 +55,7 @@ export const toSalonJson = (
   closeHour: salon.closeHour,
   isFeatured: salon.isFeatured,
   coverSeed: salon.coverSeed,
+  autoConfirmBookings: salon.autoConfirmBookings,
   services: salon.services.map(toServiceJson),
   staff: salon.staff.map(toStaffJson),
   reviews: salon.reviews.map(toReviewJson),
@@ -61,6 +73,7 @@ export const toBookingJson = (b: Booking) => ({
   totalDurationMinutes: b.totalDurationMinutes,
   totalPrice: Number(b.totalPrice),
   status: b.status.toLowerCase(),
+  expiresAt: b.expiresAt?.toISOString() ?? null,
 });
 
 export const toAdminBookingJson = (b: Booking & { customer: User }) => ({
